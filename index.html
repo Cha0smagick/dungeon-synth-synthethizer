@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRYPT FORGE DS-1 — Sintetizador de Dungeon Synth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="audio-gate">
+  <div class="gate-box">
+    <h2>CRYPT FORGE <span>DS-1</span></h2>
+    <p>Los navegadores exigen un gesto humano antes de despertar el audio.<br>Pulsa el sello para abrir las puertas de la cripta.</p>
+    <button id="btnGate" type="button">ACTIVAR AUDIO</button>
+  </div>
+</div>
+
+<div id="app" hidden>
+
+  <header id="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+        <path d="M4 28 L4 14 L10 6 L16 14 L16 28 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 28 L16 10 L22 18 L22 28 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="10" cy="20" r="2" fill="currentColor"/>
+        <path d="M24 28 L24 4" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <div class="brand-text">
+        <h1>CRYPT FORGE</h1>
+        <span>DS-1 · Sintetizador de Dungeon Synth</span>
+      </div>
+    </div>
+
+    <div class="transport" role="group" aria-label="Transporte">
+      <button id="btnPlay" class="tbtn play" type="button" title="Reproducir / Parar (Espacio)">▶</button>
+      <div class="step-leds" id="stepLeds" aria-hidden="true"></div>
+      <div class="transport-fields">
+        <label class="tfield">BPM
+          <input id="bpm" type="number" min="40" max="200" step="1" value="90" title="Tempo (pulsaciones por minuto)">
+        </label>
+        <div class="knob-slot" data-knob="swing" data-label="Swing" data-min="0" data-max="60" data-def="0" data-unit="%" title="Swing: retardo de los pasos impares"></div>
+      </div>
+    </div>
+
+    <div class="recorder" role="group" aria-label="Grabadora">
+      <button id="btnRec" class="tbtn rec" type="button" title="Grabar la salida maestra a WAV">● REC</button>
+      <span id="recTime" class="rec-time">00:00.0</span>
+      <select id="bitDepth" class="mini-select" title="Profundidad de bits del WAV exportado">
+        <option value="16" selected>16 bit</option>
+        <option value="24">24 bit</option>
+      </select>
+      <button id="btnExport" class="tbtn export" type="button" title="Descargar la grabación como WAV" disabled>EXPORTAR WAV</button>
+    </div>
+  </header>
+
+  <main id="panels">
+
+    <section class="panel panel-synth" aria-label="Síntesis">
+      <h2>SÍNTESIS</h2>
+
+      <div class="module" id="modOscA">
+        <h3>OSC A <em>principal</em></h3>
+        <div class="ctl-row">
+          <select class="wave-select" data-select="oscA.wave" title="Forma de onda del oscilador A">
+            <option value="sawtooth">Sierra</option>
+            <option value="square">Cuadrada</option>
+            <option value="triangle">Triángulo</option>
+            <option value="sine">Seno</option>
+          </select>
+        </div>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="oscA.oct" data-label="Oct" data-min="-2" data-max="2" data-def="0" data-step="1"></div>
+          <div class="knob-slot" data-knob="oscA.detune" data-label="Afin" data-min="-1200" data-max="1200" data-def="0" data-unit="c"></div>
+          <div class="knob-slot" data-knob="oscA.level" data-label="Nivel" data-min="0" data-max="1" data-def="0.8"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modOscB">
+        <h3>OSC B <em>segundo / sub</em></h3>
+        <div class="ctl-row">
+          <select class="wave-select" data-select="oscB.wave" title="Forma de onda del oscilador B">
+            <option value="sawtooth">Sierra</option>
+            <option value="square">Cuadrada</option>
+            <option value="triangle">Triángulo</option>
+            <option value="sine">Seno</option>
+          </select>
+        </div>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="oscB.oct" data-label="Oct" data-min="-2" data-max="2" data-def="0" data-step="1"></div>
+          <div class="knob-slot" data-knob="oscB.detune" data-label="Afin" data-min="-1200" data-max="1200" data-def="0" data-unit="c"></div>
+          <div class="knob-slot" data-knob="oscB.level" data-label="Nivel" data-min="0" data-max="1" data-def="0.6"></div>
+        </div>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="sub.level" data-label="Sub" data-min="0" data-max="1" data-def="0.4" title="Sub-oscilador seno, una octava abajo"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modFilter">
+        <h3>FILTRO <em>lowpass + envolvente</em></h3>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="filter.cutoff" data-label="Corte" data-min="40" data-max="8000" data-def="600" data-curve="log" data-unit="Hz"></div>
+          <div class="knob-slot" data-knob="filter.res" data-label="Reson." data-min="0" data-max="20" data-def="1"></div>
+          <div class="knob-slot" data-knob="filter.envAmt" data-label="Env" data-min="0" data-max="1" data-def="0.4" title="Cantidad de envolvente sobre el corte (en octavas)"></div>
+        </div>
+        <div class="ctl-row knobs envknobs">
+          <div class="knob-slot" data-knob="filter.a" data-label="A" data-min="0" data-max="4" data-def="0.05" data-unit="s"></div>
+          <div class="knob-slot" data-knob="filter.d" data-label="D" data-min="0.01" data-max="4" data-def="0.4" data-unit="s"></div>
+          <div class="knob-slot" data-knob="filter.s" data-label="S" data-min="0" data-max="1" data-def="0.3"></div>
+          <div class="knob-slot" data-knob="filter.r" data-label="R" data-min="0.01" data-max="5" data-def="0.5" data-unit="s"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modAmp">
+        <h3>AMPLITUD <em>ADSR</em></h3>
+        <div class="ctl-row knobs envknobs">
+          <div class="knob-slot" data-knob="amp.a" data-label="A" data-min="0" data-max="4" data-def="0.02" data-unit="s"></div>
+          <div class="knob-slot" data-knob="amp.d" data-label="D" data-min="0.01" data-max="4" data-def="0.3" data-unit="s"></div>
+          <div class="knob-slot" data-knob="amp.s" data-label="S" data-min="0" data-max="1" data-def="0.7"></div>
+          <div class="knob-slot" data-knob="amp.r" data-label="R" data-min="0.01" data-max="5" data-def="0.4" data-unit="s"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modLfo">
+        <h3>LFO <em>vibrato / trémolo</em></h3>
+        <div class="ctl-row">
+          <select class="wave-select" data-select="lfo.wave" title="Forma de onda del LFO">
+            <option value="sine">Seno</option>
+            <option value="triangle">Triángulo</option>
+          </select>
+          <select class="mini-select" data-select="lfo.target" title="Destino del LFO">
+            <option value="off">Off</option>
+            <option value="filter">Corte</option>
+            <option value="pitch">Diapasón</option>
+            <option value="amp">Amplitud</option>
+          </select>
+        </div>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="lfo.rate" data-label="Frec" data-min="0.05" data-max="12" data-def="5" data-curve="log" data-unit="Hz"></div>
+          <div class="knob-slot" data-knob="lfo.depth" data-label="Prof" data-min="0" data-max="1" data-def="0.2"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modMode">
+        <h3>MODO <em>de ejecución</em></h3>
+        <div class="ctl-row">
+          <select class="mini-select" data-select="mode" title="Modo de voces">
+            <option value="poly">Poli (8)</option>
+            <option value="mono">Mono + glide</option>
+          </select>
+        </div>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="glide" data-label="Glide" data-min="0" data-max="500" data-def="0" data-unit="ms"></div>
+          <div class="knob-slot" data-knob="spread" data-label="Spread" data-min="0" data-max="1" data-def="0.6" title="Paneo estéreo por altura de nota"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel-fx" aria-label="Efectos y master">
+      <h2>FX &amp; MASTER</h2>
+
+      <div class="module" id="modDrive">
+        <h3>DRIVE <em>cinta</em></h3>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="fx.drive" data-label="Drive" data-min="0" data-max="1" data-def="0.15"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modReverb">
+        <h3>REVERB <em>catedral</em></h3>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="fx.revSend" data-label="Send" data-min="0" data-max="1" data-def="0.5"></div>
+          <div class="knob-slot" data-knob="fx.revPre" data-label="PreD" data-min="0" data-max="120" data-def="30" data-unit="ms" title="Pre-delay del reverb"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modDelay">
+        <h3>DELAY <em>sincronizado</em></h3>
+        <div class="ctl-row">
+          <select class="mini-select" data-select="fx.delDiv" title="División del delay respecto al tempo">
+            <option value="1.5">1/2</option>
+            <option value="1">1/4</option>
+            <option value="0.75">1/4 con puntillo</option>
+            <option value="0.5" selected>1/8</option>
+            <option value="0.375">1/8 con puntillo</option>
+          </select>
+        </div>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="fx.delSend" data-label="Send" data-min="0" data-max="1" data-def="0.2"></div>
+          <div class="knob-slot" data-knob="fx.delFb" data-label="Feedback" data-min="0" data-max="0.85" data-def="0.4"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modHiss">
+        <h3>HISS <em>vinilo / cinta</em></h3>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="fx.hiss" data-label="Ruido" data-min="-60" data-max="-15" data-def="-60" data-unit="dB" title="Suelo de ruido analógico"></div>
+        </div>
+      </div>
+
+      <div class="module" id="modMaster">
+        <h3>MASTER</h3>
+        <div class="ctl-row knobs">
+          <div class="knob-slot" data-knob="fx.master" data-label="Volumen" data-min="0" data-max="1.2" data-def="0.8"></div>
+        </div>
+        <canvas id="meter" width="220" height="34" title="Medidor de pico / RMS de salida"></canvas>
+      </div>
+    </section>
+
+    <section class="panel panel-side" aria-label="Presets y escala">
+      <h2>PRESETS</h2>
+      <div class="module" id="modPresets">
+        <div class="ctl-row">
+          <select id="presetSelect" class="full-select" title="Presets de sonido"></select>
+        </div>
+        <div class="ctl-row btn-row">
+          <button id="btnPresetSave" class="sbtn" type="button" title="Guardar el sonido actual como preset">Guardar</button>
+          <button id="btnPresetDel" class="sbtn" type="button" title="Borrar el preset seleccionado (solo propios)">Borrar</button>
+        </div>
+      </div>
+
+      <h2>ESCALA</h2>
+      <div class="module" id="modScale">
+        <div class="ctl-row">
+          <select id="rootSelect" class="mini-select" title="Tónica del bloqueo de escala"></select>
+          <select id="modeSelect" class="mini-select" title="Modo">
+            <option value="aeolian" selected>Eolia (menor)</option>
+            <option value="dorian">Doria</option>
+            <option value="phrygian">Frigia</option>
+            <option value="harmonic">Harm. menor</option>
+            <option value="none">Cromática</option>
+          </select>
+        </div>
+        <label class="chk"><input id="scaleLock" type="checkbox" checked> Resaltar la escala en el teclado y el secuenciador</label>
+      </div>
+
+      <h2>CRIPTA</h2>
+      <div class="module" id="modHelp">
+        <p class="help-text">Camina lento: los pads de ataque largo, el reverb de catedral y los modos menores son el idioma del dungeon synth. Empieza por <strong>Mazmorra de Piedra</strong>, pulsa ▶ y deja que la secuencia respire.</p>
+        <ul class="help-list">
+          <li><b>Teclado:</b> fila Z–M graves, Q–U agudas.</li>
+          <li><b>Secuenciador:</b> elige nota en la paleta y pinta los 16 pasos; Mayús + clic = acento; clic derecho = borrar.</li>
+          <li><b>Canción:</b> encadena patrones 1–8 y déjalo sonar.</li>
+          <li><b>Grabar:</b> ● REC capta todo lo que suena en el master. Exporta WAV de 16 o 24 bits.</li>
+        </ul>
+        <p class="help-text">El estado (sonido, ritmos, secuencias) se guarda solo en este navegador.</p>
+      </div>
+    </section>
+
+    <section class="panel panel-seq" aria-label="Secuenciador">
+      <h2>SECUENCIADOR</h2>
+
+      <div class="seq-toolbar">
+        <div class="pat-group" role="group" aria-label="Patrones">
+          <span class="tb-label">Patrón</span>
+          <div id="patButtons" class="pat-buttons"></div>
+        </div>
+        <div class="tb-buttons">
+          <button id="btnPatCopy" class="sbtn" type="button" title="Copiar el patrón actual al portapapeles interno">Copiar</button>
+          <button id="btnPatPaste" class="sbtn" type="button" title="Pegar en el patrón actual">Pegar</button>
+          <button id="btnPatClear" class="sbtn" type="button" title="Vaciar el patrón actual">Limpiar</button>
+          <button id="btnSong" class="sbtn song" type="button" title="Modo canción: reproducir la cadena">CANCIÓN</button>
+        </div>
+        <div class="tb-fields">
+          <label class="tfield">Gate
+            <select id="gateSelect" class="mini-select" title="Duración de nota por paso">
+              <option value="0.25">25%</option>
+              <option value="0.5" selected>50%</option>
+              <option value="0.75">75%</option>
+              <option value="1">100%</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="palette" id="notePalette">
+        <span class="tb-label">Nota</span>
+        <div class="pal-notes" id="palNotes"></div>
+        <div class="pal-oct">
+          <button class="sbtn oct" data-oct="-1" type="button" title="Bajar octava de la nota pintada">−</button>
+          <span id="palOct">3</span>
+          <button class="sbtn oct" data-oct="1" type="button" title="Subir octava de la nota pintada">+</button>
+        </div>
+      </div>
+
+      <div class="seq-grid">
+        <div class="seq-rowhead">
+          <span class="rowhead-label">Melodía</span>
+          <span class="rowhead-note" id="melodyInfo">—</span>
+        </div>
+        <div class="seq-cells" id="melodyRow"></div>
+        <div class="seq-drumhead" id="drumHead"></div>
+        <div class="seq-drums" id="drumGrid"></div>
+      </div>
+
+      <div class="chain" id="chainBox">
+        <span class="tb-label">Canción <em>(orden de patrones, ← repetición por posición)</em></span>
+        <div class="chain-cells" id="chainRow"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footbar">
+    <div id="keyboard" class="keyboard" role="group" aria-label="Teclado en pantalla"></div>
+    <div class="foot-info">
+      <span id="voiceInfo">voces: 0</span>
+      <span id="audioState">audio: —</span>
+    </div>
+  </footer>
+
+</div>
+
+<noscript><p style="color:#c9cdd4;font-family:sans-serif;padding:2em">CRYPT FORGE necesita JavaScript para forjar sonido.</p></noscript>
+
+<script src="js/wav.js"></script>
+<script src="js/audio-engine.js"></script>
+<script src="js/synth.js"></script>
+<script src="js/drums.js"></script>
+<script src="js/sequencer.js"></script>
+<script src="js/recorder.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
